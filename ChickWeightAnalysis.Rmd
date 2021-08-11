@@ -1,0 +1,114 @@
+---
+title: "Chicken Weight Analysis"
+author: "Dareyus Person"
+---
+
+```{r setup, include=FALSE , results='hide', warning=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Install Packages
+
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(car)
+```
+
+# Load data 
+
+```{r}
+chickwts <- datasets::chickwts
+```
+
+# Introduction
+
+The data used in this project provides information about the effectiveness of multiple feed supplements on the growth rate of chickens. The purpose of this analysis is to conclude if the average chicken weight is significantly impacted by various feed types. 
+Newly hatched chicks were randomly put into six groups, and each group was given a different feed supplement. Their weights in grams after six weeks are given along with feed types.
+
+Question: Does the average chicken weight differ based on feed type?
+
+
+# Descriptive Statistics 
+
+First I ran descriptive statistics to get an understanding of the data  
+```{r}
+# Summary statistics for all observations
+summary(chickwts)
+```
+
+```{r}
+# Summary statistics by feed type
+by(chickwts$weight, chickwts$feed, summary)
+```
+```{r}
+by(chickwts$weight, chickwts$feed, FUN = sd)
+```
+
+
+# Visualizations
+
+I want to identify any trends, patterns, and outliers within the data
+
+## Histogram
+
+Histograms display distribution of variables, shape, and spread, in this case, chicken weight.
+```{r}
+hist(chickwts$weight, 
+   xlab = "Weight (grams)", ylab = "Number of Chicks", 
+   main = "Distribution of Chicken Weight", col = "lightblue",)
+```
+## Boxplot 
+
+Box plots show variability, median, and outliers
+```{r}
+boxplot(chickwts$weight~chickwts$feed, 
+        xlab = "Feed Type", ylab = "Weight (grams)")
+```
+## Q-Q Plot
+```{r}
+qqnorm(chickwts$weight, 
+       xlab = "Distribution", ylab = "Weight (g)",
+       main = "Normal Q-Q Plot of Chicken weights")
+qqline(chickwts$weight)
+```
+
+### The histogram plot is unimodal and appears to be normally distributed. The median weights vary slightly and there are 3 outliers for one of the feed types. So I also plotted a Q-Q plot and it confirms the homogeneity of variance with reasonable linearity.
+
+# Analysis
+
+## ANOVA
+
+### I ran an ANOVA to assess if the average weight of each feed type is significantly different from one another.
+### The data provided significant evidence that at least one pair of the group means are different from each other; I can report: F(5,65) = 15.37, p < 0.05. However, I do not know which specific groups differ so I decided to run a pairwise t-test with a Bonferroni Correction to reduce the increased chance of a type 1 error.
+
+```{r}
+# Run ANOVA to test for differences in average weights based on feed type
+chickwts_anova <- aov(weight~feed, data = chickwts)
+```
+```{r}
+# Summary of analysis
+summary(chickwts_anova)
+```
+
+```{r}
+## Pairwise t-test to identify which feed types differ from one another
+pairwise.t.test(chickwts$weight, chickwts$feed, p.adjust.method = "bonferroni")
+```
+
+### I can conclude that there are 5 pairs of feed types that have strong evidence against there means being equal: 
+
+linseed vs. casein
+meatmeal vs. horsebean 
+soybean vs. casein
+soybean vs. horsebean
+soybean vs. sunflower
+
+# Results and Interpretation: 
+
+## I reject the null hypothesis given that F(5,65) = 15.37, p-value < 0.05 I can conclude that there is a significant difference in average weight of the chicken based on feed type. Using a paired-test for multiple comparisons showed that there are significant differences in multiple feed typees. 
+
+```{r}
+# Levene Test to confirm homogeneity of variance
+leveneTest(chickwts_anova, center = mean)
+```
+
