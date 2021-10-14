@@ -1,0 +1,125 @@
+
+### Load libraries
+library(tidyverse)
+library(lubridate)
+
+### Load in dataset
+netflix <- read.csv("~/netflix.info/CONTENT_INTERACTION/ViewingActivity.csv")
+
+### Data cleaning/wrangling
+
+# Filter necessary data to be analyzed -- pipe Netflix and filter by name
+rae <- netflix %>%
+  filter(Profile.Name == "Raechel")
+
+# subset by specific columns 
+rae <- rae[c("Profile.Name", "Start.Time", "Duration", "Title")]
+
+# Drop null values 
+rae <- rae %>%
+  drop_na()
+
+# Make date column by using as.Date function to extract date
+rae$Date <- as.Date(rae$Start.Time)
+
+# To extract time from column, convert the vector to proper format to extract time
+rae$Start.Time <- as.POSIXct(rae$Start.Time, format = "%Y-%m-%d %H:%M:%S")                   
+
+# Make time column specifying form
+rae$Time <- format(rae$Start.Time, format = "%H:%M:%S")
+
+
+# Separate "Title" column into: title, season , episode
+rae <- rae %>%
+  separate(col = Title, into = c("title", "season", "episode"), sep = ': ')
+
+# Filter by duration 
+rae <- rae %>%
+  filter(Duration >= "00:09:00")
+
+# Check for total number of na values and unique titles
+is.na(rae)
+sum(is.na(rae)) # 510
+unique(rae$title) # 316
+
+# Filter data a year from (8/26/21) 
+one_year_ago <- rae %>%
+  filter(between(Date, as.Date("2020-08-26"), as.Date("2021-08-26")))
+
+# omit na values -- indicates movies, we want shows
+rae_one_year <- na.omit(one_year_ago)
+
+# Number of episodes watched per series
+num_episodes_per_series <- rae_one_year %>%
+  group_by(title) %>%
+  count(sort = TRUE, name = "Num.Episodes.Watched")
+
+# Top 10 shows watched 
+top10 <- head(num_episodes_per_series, 10)
+
+# Plot Top 10 Series
+ggplot(top10, aes(x = reorder(title, Num.Episodes.Watched), y = Num.Episodes.Watched)) + 
+  geom_col(fill = "tomato") + coord_flip() +
+  ggtitle("Top 10 Series watched on Netflix", "Past Year") +
+  labs(x = "Series", y = "# of Episodes Watched")
+
+# How many episodes watched per day on Netflix in the past year?
+netflix.per.day <- rae_one_year %>%
+  count(Date) %>%
+  arrange(desc(n))
+
+# Checking for correct range of Dates -- should be 8/28/20 - 8/17/21
+range(rae_one_year$Date)
+
+# Plot for Episodes per day
+ggplot(netflix.per.day, aes(x = Date, y = n)) +
+  geom_col() + 
+  ggtitle("Episodes Per Day", "For the past year") +
+  labs(x = "Date", y = "Number of Episodes")
+
+# Create Heatmap of episodes watched by month and year
+netflix.per.day <- netflix.per.day[order(netflix.per.day$Date),]
+netflix.per.day$Dayofweek <- weekdays(x = netflix.per.day$Date, abbr = TRUE)
+netflix.per.day$Month <- months(netflix.per.day$Date, abbreviate = TRUE)
+netflix.per.day$weekofmonth <- ceiling(day(netflix.per.day$Date) / 7)
+ggplot(netflix.per.day, aes(weekofmonth, Dayofweek, fill = netflix.per.day$n)) +
+  geom_tile(color = "black") +
+  facet_grid(year(netflix.per.day$Date) ~ Month) + 
+  scale_fill_gradient(low = "#FFD000", high = "#FF1919") + 
+  ggtitle("Episodes Per Day", "Heatmap for the day of the week, month, and year") +
+  labs(x ="Number of Weeks", y = "Day of the Week") +
+  labs(fill = "Number of Episodes")
+
+# Days of the week with most activity -- DOW we watched episodes not count
+most_active_day <- netflix.per.day %>%
+  count(Dayofweek)
+
+# Plot most active day 
+ggplot(netflix.per.day, aes(Dayofweek, n)) + 
+  geom_col(fill = "red") +
+  coord_polar() +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(face = "bold"),
+        plot.title = element_text(size = 16, face = "bold")) +
+  ggtitle("Most active day of the week", "Number of Episodes" )
+
+# Which month was most active? 
+most_active_month <- netflix.per.day %>%
+  count(Month)
+
+# Plot most active month 
+ggplot(netflix.per.day, aes(Month, n)) + 
+  geom_col(fill = "red") +
+  coord_polar() +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(face = "bold"),
+        plot.title = element_text(size = 16, face = "bold")) +
+  ggtitle("Most active month", "Number of Episodes" )
+
+  
