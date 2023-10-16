@@ -1,28 +1,19 @@
----
-title: "Credit Balance Analysis"
-author: "Dareyus Person"
-output: "github_document"
----
+Credit Balance Analysis
+================
+Dareyus Person
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+`{r setup, include=FALSE} knitr::opts_chunk$set(echo = TRUE)`
 
-
-
-```{r}
+``` {r}
 # The purpose of this project is to build a regression model so I can predict credit card balances for new customers (based on data of customers with a current balance)
 
 # Guiding Business Questions:
 
 #1: “What variables effectively contribute to predicting active cardholders’ credit card balances?” 
 #2: “What credit card balance might a new active cardholder hold depending on certain variables?” 
-
 ```
 
-
-
-```{r}
+``` {r}
 # install packages
 #install.packages("tidyverse")
 #install.packages("lm.beta")
@@ -34,32 +25,30 @@ library(lm.beta)
 library(car)
 ```
 
-```{r warning=FALSE}
-# Set working directory
-setwd("~/Documents/Datasets/Stats Datasets")
+\`\`\`{r warning=FALSE} \# Set working directory
+setwd(“\~/Documents/Datasets/Stats Datasets”)
 
 # Read dataset into RStudio =)
-credit <- read.csv("credit.csv")
-```
+
+credit \<- read.csv(“credit.csv”)
 
 
-```{r}
-# I noticed that the "Income" feature has a '.' to denote a comma for larger number... I'm assuming so lets remove the comma so the number can be represented accurately
 
-credit$Income <- as.numeric(gsub("\\.", "", credit$Income))
+    ```{r}
+    # I noticed that the "Income" feature has a '.' to denote a comma for larger number... I'm assuming so lets remove the comma so the number can be represented accurately
 
-
-# I also noticed a random column "X". I'll remove because it's irrelevant and there's already an index and I'll remove the number of cards
-
-credit <- credit[, -c(1, 5)]
+    credit$Income <- as.numeric(gsub("\\.", "", credit$Income))
 
 
-# I'll also remove customers with a 0 balance
-credit <- filter(credit, Balance != 0)
-```
+    # I also noticed a random column "X". I'll remove because it's irrelevant and there's already an index and I'll remove the number of cards
+
+    credit <- credit[, -c(1, 5)]
 
 
-```{r}
+    # I'll also remove customers with a 0 balance
+    credit <- filter(credit, Balance != 0)
+
+``` {r}
 # Convert categorical variables to factors with levels and labels -- easier for the model =)
 credit$Student <- factor(credit$Student)
 credit$Gender <- factor(credit$Gender)
@@ -67,13 +56,12 @@ credit$Married <- factor(credit$Married)
 credit$Ethnicity <- factor(credit$Ethnicity)
 ```
 
-
-```{r}
+``` {r}
 # Summary Statistics
 summary(credit)
 ```
 
-```{r}
+``` {r}
 # Partition the dataset into a training set and a validation set (60-40)
 set.seed(28)
 sample <- sample(c(TRUE, FALSE), nrow(credit), replace=TRUE, prob=c(0.6,0.4))
@@ -81,14 +69,14 @@ traincredit  <- credit[sample, ]
 validatecredit <- credit[!sample, ]
 ```
 
-```{r}
+``` {r}
 # I want to see correlation between all of the variables, so I'll use a correlation matrix
 cor(traincredit[c(1,2,3,4,5,10)])
 
 # It seems 'Limit' and 'Rating' are highly correlated at 99%
 ```
 
-```{r}
+``` {r}
 # Turn off scientific notation for all variables
 options(scipen=999)
 
@@ -98,16 +86,16 @@ credit_train_MR <- lm(Balance ~ Income + Limit + Rating + Age + Education + Gend
 
 # View train credit multiple regression out
 summary(credit_train_MR)
-
 ```
 
-```{r}
+``` {r}
 # Calculate the Variance Inflation Factor (VIF) for all predictor variables
 vif(credit_train_MR)
 
 # Limit and Rating have very high VIF, meaning these two are highly correlated with each other, let's remove Limit and re-run the regression and revisit the results
 ```
-```{r}
+
+``` {r}
 # Create another multiple regression analysis model without the "Limit" feature
 
 credit_train_MR_nolimit <- lm(Balance ~ Income + Rating + Age + Education + Gender + Student + Married + Ethnicity, data = traincredit)
@@ -117,7 +105,8 @@ summary(credit_train_MR_nolimit)
 
 ## Observed, the Rating coefficient increased and has more of an influence on Balance
 ```
-```{r}
+
+``` {r}
 # Create residual plot and QQ plot of regression analysis "credit_train_MR_nolimit
 
 
@@ -141,7 +130,8 @@ credit_std_res <- rstandard(credit_train_MR_nolimit)
 # QQ plot
 qqnorm(credit_std_res, ylab = "Standardized residuals", xlab = "Normal scores")
 ```
-```{r}
+
+``` {r}
 # From the model a few steps above, 4 variables show statistical significance with the Balance outcome -- Income, Rating, Age, and Student
 
 # Let's create a new model these variables
@@ -158,20 +148,23 @@ summary(credit_sigvar_MR)
 
 ## Adjusted R-squared: All the predictor variables account for 81% of the variation in balance
 ```
-```{r}
+
+``` {r}
 # Remember that these predictor variables have different scales. We can look at 'standardized regressor coefficients' to compare and see which coefficient makes the strongest contribution to Balance
 
 lm.beta(credit_sigvar_MR)
 
 ## Standardized... Rating influences Balance the most
 ```
-```{r}
+
+``` {r}
 # Conduct a final multiple regression analysis using the validation dataframe
 
 credit_val_MR <- lm(Balance ~ Income + Age + Rating + Student, data = validatecredit)
 summary(credit_val_MR)
 ```
-```{r}
+
+``` {r}
 # Using the validation model, let's predict the Balances of a few new card holders with 95% prediction interval
 
 
@@ -189,7 +182,8 @@ cc_pred$Student <- factor(cc_pred$Student)
 # Estimate predicted y values and prediction intervals for 3 new cardholders 
 predict(credit_val_MR, cc_pred, interval = "prediction", level = 0.95)
 ```
-```{r}
+
+``` {r}
 # Interpreting the results of the new cardholders:
 
 ## For new cardholder #1, their predicted balance is 1386.71 and according to the model, we are 95% sure it will be somewhere between 1139.96 and 1633.49
